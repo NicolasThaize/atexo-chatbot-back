@@ -5,8 +5,8 @@ Ce docker-compose principal orchestre tous les services de l'application Atexo e
 ## Services inclus
 
 - **Flask Backend** (port 5000) - API principale de l'application
-- **Keycloak** (ports 7080, 7443) - Service d'authentification et d'autorisation
-- **HAProxy** (ports 3000, 8000, 8001, 8002, 8404) - Reverse proxy et load balancer
+- **Keycloak** (ports 7080, 7443) - Service d'authentification et d'autorisation. Le déploiement de ce service est désactivable pour d'utiliser une instance de Keycloak déjà déployée (`LOCAL_AUTH_ENABLED=false` dans le ficher `.env`)
+- **HAProxy** (ports 3000, 8000, 8001, 8002, 8404) - Reverse proxy (authentification sur les services de Wrenai)
 - **WrenAI Services** - Suite complète de services d'IA :
   - Wren Bootstrap
   - Wren Engine (port 8001)
@@ -24,9 +24,9 @@ Ce docker-compose principal orchestre tous les services de l'application Atexo e
 ## Configuration
 
 1. Copiez le fichier d'environnement :
-   ```bash
-   cp env.example .env
-   ```
+  ```bash
+  cp env.example .env
+  ```
 
 2. Modifiez le fichier `.env` selon vos besoins
 ```
@@ -46,7 +46,9 @@ docker compose up -d
 docker cp db.sqlite3 atexo_wren_bootstrap:/app/data/db.sqlite3
 ```
 
-### Configuration Keycloak (environnement de développement)
+L'interface web du chatbot est accessible sur http://localhost:4200/.
+
+### Configuration Keycloak (environnement de développement avec LOCAL_AUTH_ENABLED=true)
 
 > **Note :** Ces étapes simplifient l'accès à la version locale du chatbot. En production, configurez les variables d'environnement Keycloak et définissez `LOCAL_AUTH_ENABLED=false`.
 
