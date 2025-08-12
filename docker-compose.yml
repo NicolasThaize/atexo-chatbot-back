@@ -1,0 +1,225 @@
+version: '3.8'
+
+services:
+  # Flask Backend
+  flask-app:
+    build:
+      context: ./flask
+      dockerfile: Dockerfile
+    container_name: atexo_flask_app
+    ports:
+      - "5000:5000"
+    environment:
+#      - FLASK_ENV=development
+      - FLASK_DEBUG=true
+      - WRENAI_BASE_URL=http://atexo_wren_ui:3000/api/v1
+      - WRENAI_API_KEY=your-wrenai-api-key
+      - OIDC_CLIENT_SECRETS=client_secrets.json
+      - OIDC_SCOPES=openid email profile
+      - OIDC_CLOCK_SKEW=60
+      - OIDC_USER_INFO_ENABLED=True
+      - OIDC_ENABLED=True
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - KEYCLOAK_SERVER_URL=http://atexo_keycloak:7080
+      - JWT_SECRET_KEY=jwt-secret-key
+      - JWT_ALGORITHM=HS256
+      - AUTH_ENABLED=true
+      
+    networks:
+      - atexo_chatbot
+    depends_on:
+      - keycloak
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/chatbot/test"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Keycloak (from keycloak/docker-compose.yml)
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3
+    container_name: atexo_keycloak
+    environment:
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 7080
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+      KC_LOG_LEVEL: info
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: "xforwarded"
+      KC_PROXY_TRUSTED_ADDRESSES: "172.16.0.0/12,192.168.0.0/16,10.0.0.0/8"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7080/health/ready"]
+      interval: 15s
+      timeout: 2s
+      retries: 15
+    command: ["start-dev", "--http-port", "7080", "--https-port", "7443"]
+    ports:
+      - "7080:7080"
+      - "7443:7443"
+    networks:
+      - atexo_chatbot
+    restart: unless-stopped
+
+  # HAProxy Reverse Proxy (from reverse-proxy/docker-compose.yml)
+  haproxy:
+    build:
+      context: ./reverse-proxy
+      dockerfile: Dockerfile
+    container_name: atexo_haproxy
+    ports:
+      - "3000:3000"  # WrenAI UI
+      - "8000:8000"  # WrenAI AI Service
+      - "8001:8001"  # WrenAI Engine
+      - "8002:8002"  # WrenAI Ibis Server
+      - "8404:8404"  # HAProxy stats page
+    env_file:
+      - .env
+    depends_on:
+      - keycloak
+      - wren-ui
+      - wren-ai-service
+      - wren-engine
+      - ibis-server
+    networks:
+      - atexo_chatbot
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "haproxy", "-c", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # WrenAI Services (from wrenai/docker-compose.yaml)
+  wren-bootstrap:
+    image: ghcr.io/canner/wren-bootstrap:${WREN_BOOTSTRAP_VERSION:-latest}
+    container_name: atexo_wren_bootstrap
+    restart: on-failure
+    platform: ${PLATFORM:-linux/amd64}
+    environment:
+      DATA_PATH: /app/data
+    env_file:
+      - .env
+    volumes:
+      - wrenai_data:/app/data
+    command: /bin/sh /app/init.sh
+    networks:
+      - atexo_chatbot
+
+  wren-engine:
+    image: ghcr.io/canner/wren-engine:${WREN_ENGINE_VERSION:-latest}
+    container_name: atexo_wren_engine
+    restart: on-failure
+    platform: ${PLATFORM:-linux/amd64}
+    expose:
+      - ${WREN_ENGINE_PORT:-8080}
+      - ${WREN_ENGINE_SQL_PORT:-7432}
+    env_file:
+      - .env
+    volumes:
+      - wrenai_data:/usr/src/app/etc
+      - ${PROJECT_DIR}/data:/usr/src/app/data
+    networks:
+      - atexo_chatbot
+    depends_on:
+      - wren-bootstrap
+
+  ibis-server:
+    image: ghcr.io/canner/wren-engine-ibis:${IBIS_SERVER_VERSION:-latest}
+    container_name: atexo_ibis_server
+    restart: on-failure
+    platform: ${PLATFORM:-linux/amd64}
+    expose:
+      - ${IBIS_SERVER_PORT:-8000}
+    env_file:
+      - .env
+    environment:
+      WREN_ENGINE_ENDPOINT: http://wren-engine:${WREN_ENGINE_PORT:-8080}
+    volumes:
+      - ${LOCAL_STORAGE:-${PROJECT_DIR}}:/usr/src/app/data
+    networks:
+      - atexo_chatbot
+
+  wren-ai-service:
+    image: ghcr.io/canner/wren-ai-service:${WREN_AI_SERVICE_VERSION:-latest}
+    container_name: atexo_wren_ai_service
+    restart: on-failure
+    platform: ${PLATFORM:-linux/amd64}
+    expose:
+      - ${WREN_AI_SERVICE_PORT:-5555}
+    env_file:
+      - .env
+    environment:
+      PYTHONUNBUFFERED: 1
+      CONFIG_PATH: /app/config.yaml
+    volumes:
+      - ${PROJECT_DIR}/config.yaml:/app/config.yaml:ro
+      - ${PROJECT_DIR}/data:/app/data:ro
+    networks:
+      - atexo_chatbot
+    depends_on:
+      - qdrant
+
+  qdrant:
+      image: qdrant/qdrant:v1.11.0
+      container_name: atexo_qdrant
+      restart: on-failure
+      expose:
+        - 6333
+        - 6334
+      volumes:
+        - wrenai_data:/qdrant/storage
+      networks:
+        - atexo_chatbot
+
+  wren-ui:
+    image: ghcr.io/canner/wren-ui:${WREN_UI_VERSION:-latest}
+    container_name: atexo_wren_ui
+    restart: on-failure
+    platform: ${PLATFORM:-linux/amd64}
+    environment:
+      DB_TYPE: sqlite
+      SQLITE_FILE: /app/data/db.sqlite3
+      WREN_ENGINE_ENDPOINT: http://wren-engine:${WREN_ENGINE_PORT:-8001}
+      WREN_AI_ENDPOINT: http://wren-ai-service:${WREN_AI_SERVICE_PORT:-8000}
+      IBIS_SERVER_ENDPOINT: http://ibis-server:${IBIS_SERVER_PORT:-8002}
+      GENERATION_MODEL: ${GENERATION_MODEL:-gpt-4}
+      WREN_ENGINE_PORT: ${WREN_ENGINE_PORT:-8001}
+      WREN_AI_SERVICE_VERSION: ${WREN_AI_SERVICE_VERSION:-latest}
+      WREN_UI_VERSION: ${WREN_UI_VERSION:-latest}
+      WREN_ENGINE_VERSION: ${WREN_ENGINE_VERSION:-latest}
+      USER_UUID: ${USER_UUID:-default}
+      POSTHOG_API_KEY: ${POSTHOG_API_KEY:-}
+      POSTHOG_HOST: ${POSTHOG_HOST:-}
+      TELEMETRY_ENABLED: ${TELEMETRY_ENABLED:-false}
+      NEXT_PUBLIC_USER_UUID: ${USER_UUID:-default}
+      NEXT_PUBLIC_POSTHOG_API_KEY: ${POSTHOG_API_KEY:-}
+      NEXT_PUBLIC_POSTHOG_HOST: ${POSTHOG_HOST:-}
+      NEXT_PUBLIC_TELEMETRY_ENABLED: ${TELEMETRY_ENABLED:-false}
+      EXPERIMENTAL_ENGINE_RUST_VERSION: ${EXPERIMENTAL_ENGINE_RUST_VERSION:-false}
+      WREN_PRODUCT_VERSION: ${WREN_PRODUCT_VERSION:-latest}
+    env_file:
+      - .env
+    volumes:
+      - wrenai_data:/app/data
+    networks:
+      - atexo_chatbot
+    depends_on:
+      - wren-ai-service
+      - wren-engine
+
+volumes:
+  wrenai_data:
+
+networks:
+  atexo_chatbot:
+    driver: bridge 
