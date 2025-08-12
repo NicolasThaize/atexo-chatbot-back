@@ -10,22 +10,22 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - FLASK_ENV=development
-      - FLASK_DEBUG=true
-      - WRENAI_BASE_URL=http://atexo_wren_ui:3000/api/v1
-      - WRENAI_API_KEY=your-wrenai-api-key
-      - OIDC_CLIENT_SECRETS=client_secrets.json
-      - OIDC_SCOPES=openid email profile
-      - OIDC_CLOCK_SKEW=60
-      - OIDC_USER_INFO_ENABLED=True
-      - OIDC_ENABLED=True
-      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
-      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
-      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
-      - KEYCLOAK_SERVER_URL=${KEYCLOAK_SERVER_URL}
-      - JWT_SECRET_KEY=jwt-secret-key
-      - JWT_ALGORITHM=HS256
-      - AUTH_ENABLED=true
+      FLASK_ENV: development
+      FLASK_DEBUG: true
+      WRENAI_BASE_URL: http://atexo_wren_ui:3000/api/v1
+      WRENAI_API_KEY: your-wrenai-api-key
+      OIDC_CLIENT_SECRETS: client_secrets.json
+      OIDC_SCOPES: openid email profile
+      OIDC_CLOCK_SKEW: 60
+      OIDC_USER_INFO_ENABLED: True
+      OIDC_ENABLED: True
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_SERVER_URL: ${KEYCLOAK_SERVER_URL}
+      JWT_SECRET_KEY: jwt-secret-key
+      JWT_ALGORITHM: HS256
+      AUTH_ENABLED: true
       
     networks:
       - atexo_chatbot
@@ -83,28 +83,28 @@ services:
       - "8002:8002"  # WrenAI Ibis Server
       - "8404:8404"  # HAProxy stats page
     environment:
-      - KEYCLOAK_URL=${KEYCLOAK_SERVER_URL}
-      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
-      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
-      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
-      - KEYCLOAK_SERVICE_HOST=keycloak
-      - KEYCLOAK_SERVICE_PORT=7080
-      - WREN_AI_SERVICE_PORT=5555
-      - WREN_ENGINE_PORT=8081
-      - IBIS_SERVER_PORT=8000
-      - PROXY_TRUSTED_ADDRESSES=172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
-      - PROXY_HEADERS_TYPE=xforwarded
-      - ALLOW_STATIC_RESOURCES=true
-      - ALLOW_AUTH_ENDPOINTS=true
-      - STATIC_RESOURCE_PATHS=/_next,/static
-      - AUTH_ENDPOINT_PATHS=/api/auth,/realms,/resources,/admin
-      - JWT_CACHE_DURATION=300
-      - JWT_VALIDATION_ENABLED=true
-      - JWT_LOG_LEVEL=info
-      - HAPROXY_STATS_USER=admin
-      - HAPROXY_STATS_PASSWORD=admin123
-      - HAPROXY_MAX_CONNECTIONS=4096
-      - HAPROXY_LOG_LEVEL=info
+      KEYCLOAK_URL: ${KEYCLOAK_SERVER_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_SERVICE_HOST: keycloak
+      KEYCLOAK_SERVICE_PORT: 7080
+      WREN_AI_SERVICE_PORT: 5555
+      WREN_ENGINE_PORT: 8081
+      IBIS_SERVER_PORT: 8000
+      PROXY_TRUSTED_ADDRESSES: 172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
+      PROXY_HEADERS_TYPE: xforwarded
+      ALLOW_STATIC_RESOURCES: true
+      ALLOW_AUTH_ENDPOINTS: true
+      STATIC_RESOURCE_PATHS: /_next,/static
+      AUTH_ENDPOINT_PATHS: /api/auth,/realms,/resources,/admin
+      JWT_CACHE_DURATION: 300
+      JWT_VALIDATION_ENABLED: true
+      JWT_LOG_LEVEL: info
+      HAPROXY_STATS_USER: admin
+      HAPROXY_STATS_PASSWORD: admin123
+      HAPROXY_MAX_CONNECTIONS: 4096
+      HAPROXY_LOG_LEVEL: info
     env_file:
       - .env
     depends_on:
@@ -124,10 +124,10 @@ services:
 
   # WrenAI Services (from wrenai/docker-compose.yaml)
   wren-bootstrap:
-    image: ghcr.io/canner/wren-bootstrap:${WREN_BOOTSTRAP_VERSION:-latest}
+    image: ghcr.io/canner/wren-bootstrap:0.1.5
     container_name: atexo_wren_bootstrap
     restart: on-failure
-    platform: ${PLATFORM:-linux/amd64}
+    platform: ${PLATFORM}
     environment:
       DATA_PATH: /app/data
     env_file:
@@ -139,54 +139,54 @@ services:
       - atexo_chatbot
 
   wren-engine:
-    image: ghcr.io/canner/wren-engine:${WREN_ENGINE_VERSION:-latest}
+    image: ghcr.io/canner/wren-engine:0.17.1
     container_name: atexo_wren_engine
     restart: on-failure
-    platform: ${PLATFORM:-linux/amd64}
+    platform: ${PLATFORM}
     expose:
-      - ${WREN_ENGINE_PORT:-8080}
-      - ${WREN_ENGINE_SQL_PORT:-7432}
+      - 8080
+      - 7432
     env_file:
       - .env
     volumes:
       - wrenai_data:/usr/src/app/etc
-      - ${PROJECT_DIR}/data:/usr/src/app/data
+      - ./wrenai/data:/usr/src/app/data
     networks:
       - atexo_chatbot
     depends_on:
       - wren-bootstrap
 
   ibis-server:
-    image: ghcr.io/canner/wren-engine-ibis:${IBIS_SERVER_VERSION:-latest}
+    image: ghcr.io/canner/wren-engine-ibis:0.17.1
     container_name: atexo_ibis_server
     restart: on-failure
-    platform: ${PLATFORM:-linux/amd64}
+    platform: ${PLATFORM}
     expose:
-      - ${IBIS_SERVER_PORT:-8000}
+      - 8000
     env_file:
       - .env
     environment:
-      WREN_ENGINE_ENDPOINT: http://wren-engine:${WREN_ENGINE_PORT:-8080}
+      WREN_ENGINE_ENDPOINT: http://wren-engine:8080
     volumes:
-      - ${LOCAL_STORAGE:-${PROJECT_DIR}}:/usr/src/app/data
+      - ./wrenai:/usr/src/app/data
     networks:
       - atexo_chatbot
 
   wren-ai-service:
-    image: ghcr.io/canner/wren-ai-service:${WREN_AI_SERVICE_VERSION:-latest}
+    image: ghcr.io/canner/wren-ai-service:0.24.3
     container_name: atexo_wren_ai_service
     restart: on-failure
-    platform: ${PLATFORM:-linux/amd64}
+    platform: ${PLATFORM}
     expose:
-      - ${WREN_AI_SERVICE_PORT:-5555}
+      - 5555
     env_file:
       - .env
     environment:
       PYTHONUNBUFFERED: 1
       CONFIG_PATH: /app/config.yaml
     volumes:
-      - ${PROJECT_DIR}/config.yaml:/app/config.yaml:ro
-      - ${PROJECT_DIR}/data:/app/data:ro
+      - ./wrenai/config.yaml:/app/config.yaml:ro
+      - ./wrenai/data:/app/data:ro
     networks:
       - atexo_chatbot
     depends_on:
@@ -205,31 +205,31 @@ services:
         - atexo_chatbot
 
   wren-ui:
-    image: ghcr.io/canner/wren-ui:${WREN_UI_VERSION:-latest}
+    image: ghcr.io/canner/wren-ui:0.30.0
     container_name: atexo_wren_ui
     restart: on-failure
-    platform: ${PLATFORM:-linux/amd64}
+    platform: ${PLATFORM}
     environment:
       DB_TYPE: sqlite
       SQLITE_FILE: /app/data/db.sqlite3
-      WREN_ENGINE_ENDPOINT: http://wren-engine:${WREN_ENGINE_PORT:-8001}
-      WREN_AI_ENDPOINT: http://wren-ai-service:${WREN_AI_SERVICE_PORT:-8000}
-      IBIS_SERVER_ENDPOINT: http://ibis-server:${IBIS_SERVER_PORT:-8002}
-      GENERATION_MODEL: ${GENERATION_MODEL:-gpt-4}
-      WREN_ENGINE_PORT: ${WREN_ENGINE_PORT:-8001}
-      WREN_AI_SERVICE_VERSION: ${WREN_AI_SERVICE_VERSION:-latest}
-      WREN_UI_VERSION: ${WREN_UI_VERSION:-latest}
-      WREN_ENGINE_VERSION: ${WREN_ENGINE_VERSION:-latest}
-      USER_UUID: ${USER_UUID:-default}
-      POSTHOG_API_KEY: ${POSTHOG_API_KEY:-}
-      POSTHOG_HOST: ${POSTHOG_HOST:-}
-      TELEMETRY_ENABLED: ${TELEMETRY_ENABLED:-false}
-      NEXT_PUBLIC_USER_UUID: ${USER_UUID:-default}
-      NEXT_PUBLIC_POSTHOG_API_KEY: ${POSTHOG_API_KEY:-}
-      NEXT_PUBLIC_POSTHOG_HOST: ${POSTHOG_HOST:-}
-      NEXT_PUBLIC_TELEMETRY_ENABLED: ${TELEMETRY_ENABLED:-false}
-      EXPERIMENTAL_ENGINE_RUST_VERSION: ${EXPERIMENTAL_ENGINE_RUST_VERSION:-false}
-      WREN_PRODUCT_VERSION: ${WREN_PRODUCT_VERSION:-latest}
+      WREN_ENGINE_ENDPOINT: http://wren-engine:8080
+      WREN_AI_ENDPOINT: http://wren-ai-service:5555
+      IBIS_SERVER_ENDPOINT: http://ibis-server:8000
+      GENERATION_MODEL: gpt-4
+      WREN_ENGINE_PORT: 8080
+      WREN_AI_SERVICE_VERSION: 0.24.3
+      WREN_UI_VERSION: 0.30.0
+      WREN_ENGINE_VERSION: 0.17.1
+      USER_UUID: default
+      POSTHOG_API_KEY: 
+      POSTHOG_HOST: 
+      TELEMETRY_ENABLED: false
+      NEXT_PUBLIC_USER_UUID: default
+      NEXT_PUBLIC_POSTHOG_API_KEY: 
+      NEXT_PUBLIC_POSTHOG_HOST: 
+      NEXT_PUBLIC_TELEMETRY_ENABLED: false
+      EXPERIMENTAL_ENGINE_RUST_VERSION: false
+      WREN_PRODUCT_VERSION: 0.25.0
     env_file:
       - .env
     volumes:

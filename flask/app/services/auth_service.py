@@ -18,7 +18,7 @@ class AuthService:
         logger.info("AuthService initialized")
         logger.info(f"Config: {self.config.__str__()}")
     
-    def get_keycloak_public_key(self):
+    def get_keycloak_public_key(self, kid):
         """
         Fetch the public key from Keycloak's JWKS endpoint
         
@@ -37,9 +37,10 @@ class AuthService:
                 jwks = response.json()
                 logger.info(f"JWKS keys count: {len(jwks.get('keys', []))}")
                 
-                # Get the first key (usually the active one)
+                # Get the key with the given kid
                 if 'keys' in jwks and len(jwks['keys']) > 0:
-                    key_data = jwks['keys'][0]
+                    key_data = next((key for key in jwks['keys'] if key.get('kid') == kid), None)
+                    logger.info(f"Key data: {key_data}")
                     logger.info(f"Using key with kid: {key_data.get('kid', 'unknown')}")
                     logger.info(f"Key algorithm: {key_data.get('alg', 'unknown')}")
                     
@@ -255,7 +256,11 @@ class AuthService:
                 # If no public key in config, try to fetch from Keycloak
                 if not public_key:
                     logger.info("No public key in config, fetching from Keycloak...")
-                    public_key = self.get_keycloak_public_key()
+                    if header.get('kid'):
+                        public_key = self.get_keycloak_public_key(header.get('kid'))
+                    else:
+                        logger.error("No kid in token header, cannot fetch public key from Keycloak")
+                        return None
                 
                 if not public_key:
                     logger.error("No public key available for RS256 verification")
