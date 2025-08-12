@@ -29,8 +29,6 @@ services:
       
     networks:
       - atexo_chatbot
-    depends_on:
-      - keycloak
     env_file:
       - .env
     restart: unless-stopped
@@ -39,36 +37,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-  # Keycloak (from keycloak/docker-compose.yml)
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.3
-    container_name: atexo_keycloak
-    environment:
-      KC_HOSTNAME: localhost
-      KC_HOSTNAME_PORT: 7080
-      KC_HOSTNAME_STRICT_BACKCHANNEL: "true"
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
-      KC_HEALTH_ENABLED: "true"
-      KC_LOG_LEVEL: info
-      KC_HOSTNAME_STRICT: "false"
-      KC_HOSTNAME_STRICT_HTTPS: "false"
-      KC_HTTP_ENABLED: "true"
-      KC_PROXY_HEADERS: "xforwarded"
-      KC_PROXY_TRUSTED_ADDRESSES: "172.16.0.0/12,192.168.0.0/16,10.0.0.0/8"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7080/health/ready"]
-      interval: 15s
-      timeout: 2s
-      retries: 15
-    command: ["start-dev", "--http-port", "7080", "--https-port", "7443"]
-    ports:
-      - "7080:7080"
-      - "7443:7443"
-    networks:
-      - atexo_chatbot
-    restart: unless-stopped
 
   # HAProxy Reverse Proxy (from reverse-proxy/docker-compose.yml)
   haproxy:
@@ -108,7 +76,6 @@ services:
     env_file:
       - .env
     depends_on:
-      - keycloak
       - wren-ui
       - wren-ai-service
       - wren-engine
