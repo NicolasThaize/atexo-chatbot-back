@@ -82,6 +82,29 @@ services:
       - "8001:8001"  # WrenAI Engine
       - "8002:8002"  # WrenAI Ibis Server
       - "8404:8404"  # HAProxy stats page
+    environment:
+      - KEYCLOAK_URL=${KEYCLOAK_SERVER_URL}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - KEYCLOAK_SERVICE_HOST=keycloak
+      - KEYCLOAK_SERVICE_PORT=7080
+      - WREN_AI_SERVICE_PORT=5555
+      - WREN_ENGINE_PORT=8081
+      - IBIS_SERVER_PORT=8000
+      - PROXY_TRUSTED_ADDRESSES=172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
+      - PROXY_HEADERS_TYPE=xforwarded
+      - ALLOW_STATIC_RESOURCES=true
+      - ALLOW_AUTH_ENDPOINTS=true
+      - STATIC_RESOURCE_PATHS=/_next,/static
+      - AUTH_ENDPOINT_PATHS=/api/auth,/realms,/resources,/admin
+      - JWT_CACHE_DURATION=300
+      - JWT_VALIDATION_ENABLED=true
+      - JWT_LOG_LEVEL=info
+      - HAPROXY_STATS_USER=admin
+      - HAPROXY_STATS_PASSWORD=admin123
+      - HAPROXY_MAX_CONNECTIONS=4096
+      - HAPROXY_LOG_LEVEL=info
     env_file:
       - .env
     depends_on:
