@@ -10,7 +10,7 @@ services:
     ports:
       - "5000:5000"
     environment:
-#      - FLASK_ENV=development
+      - FLASK_ENV=development
       - FLASK_DEBUG=true
       - WRENAI_BASE_URL=http://atexo_wren_ui:3000/api/v1
       - WRENAI_API_KEY=your-wrenai-api-key
@@ -22,7 +22,7 @@ services:
       - KEYCLOAK_REALM=${KEYCLOAK_REALM}
       - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
-      - KEYCLOAK_SERVER_URL=http://atexo_keycloak:7080
+      - KEYCLOAK_SERVER_URL=${KEYCLOAK_SERVER_URL}
       - JWT_SECRET_KEY=jwt-secret-key
       - JWT_ALGORITHM=HS256
       - AUTH_ENABLED=true

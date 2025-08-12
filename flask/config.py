@@ -32,8 +32,19 @@ class Config:
     
     # Configuration JWT
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-secret-key')
-    JWT_ALGORITHM = os.getenv('JWT_ALGORITHM', 'RS256')
+    JWT_PUBLIC_KEY = os.getenv('JWT_PUBLIC_KEY', '')  # Optional, will be auto-fetched from Keycloak if empty
+    JWT_ALGORITHM = os.getenv('JWT_ALGORITHM', 'HS256')
     JWT_EXPIRATION_HOURS = 24
     
     # Configuration d'authentification
     AUTH_ENABLED = os.getenv('AUTH_ENABLED', 'True').lower() == 'true' 
+
+    def __str__(self):
+        """Return a string representation of all configuration attributes with their values."""
+        config_str = "Config:\n"
+        for attr_name in dir(self):
+            # Skip private attributes and methods
+            if not attr_name.startswith('_') and not callable(getattr(self, attr_name)):
+                attr_value = getattr(self, attr_name)
+                config_str += f"  {attr_name}: {attr_value}\n"
+        return config_str 

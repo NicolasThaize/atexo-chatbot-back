@@ -6,6 +6,7 @@ from flask import request, jsonify, current_app, session, g
 from flask_oidc import OpenIDConnect
 from config import Config
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,107 @@ class AuthService:
     def __init__(self):
         self.config = Config()
         logger.info("AuthService initialized")
-        logger.info(f"Config: {self.config.__dict__}")
+        logger.info(f"Config: {self.config.__str__()}")
+    
+    def get_keycloak_public_key(self):
+        """
+        Fetch the public key from Keycloak's JWKS endpoint
+        
+        Returns:
+            str: PEM-formatted public key or None if failed
+        """
+        try:
+            logger.info("Fetching public key from Keycloak JWKS endpoint...")
+            jwks_url = f"{self.config.KEYCLOAK_SERVER_URL}/realms/{self.config.KEYCLOAK_REALM}/protocol/openid-connect/certs"
+            logger.info(f"JWKS URL: {jwks_url}")
+            
+            response = requests.get(jwks_url, timeout=10)
+            logger.info(f"JWKS response status: {response.status_code}")
+            
+            if response.status_code == 200:
+                jwks = response.json()
+                logger.info(f"JWKS keys count: {len(jwks.get('keys', []))}")
+                
+                # Get the first key (usually the active one)
+                if 'keys' in jwks and len(jwks['keys']) > 0:
+                    key_data = jwks['keys'][0]
+                    logger.info(f"Using key with kid: {key_data.get('kid', 'unknown')}")
+                    logger.info(f"Key algorithm: {key_data.get('alg', 'unknown')}")
+                    
+                    # Convert JWK to PEM format
+                    pem_key = self._jwk_to_pem(key_data)
+                    if pem_key:
+                        logger.info("Successfully converted JWK to PEM format")
+                        return pem_key
+                    else:
+                        logger.error("Failed to convert JWK to PEM format")
+                else:
+                    logger.error("No keys found in JWKS response")
+            else:
+                logger.error(f"Failed to fetch JWKS: {response.status_code} - {response.text}")
+            
+            return None
+        except requests.RequestException as e:
+            logger.error(f"Request error fetching Keycloak public key: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching Keycloak public key: {e}")
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
+            return None
+    
+    def _jwk_to_pem(self, jwk):
+        """
+        Convert JWK (JSON Web Key) to PEM format
+        
+        Args:
+            jwk (dict): JWK data
+            
+        Returns:
+            str: PEM-formatted public key or None if failed
+        """
+        try:
+            from cryptography.hazmat.primitives.asymmetric import rsa
+            from cryptography.hazmat.primitives import serialization
+            import base64
+            
+            # Extract key components
+            n = int.from_bytes(base64.urlsafe_b64decode(jwk['n'] + '=='), 'big')
+            e = int.from_bytes(base64.urlsafe_b64decode(jwk['e'] + '=='), 'big')
+            
+            # Create RSA public key
+            public_key = rsa.RSAPublicNumbers(e, n).public_key()
+            
+            # Serialize to PEM format
+            pem = public_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo
+            )
+            
+            return pem.decode('utf-8')
+            
+        except Exception as e:
+            logger.error(f"Error converting JWK to PEM: {e}")
+            return None
+    
+    def detect_token_algorithm(self, token):
+        """
+        Detect the algorithm used in the JWT token
+        
+        Args:
+            token (str): JWT token
+            
+        Returns:
+            str: Algorithm name (RS256, HS256, etc.) or None if failed
+        """
+        try:
+            header = jwt.get_unverified_header(token)
+            algorithm = header.get('alg', 'unknown')
+            logger.info(f"Detected token algorithm: {algorithm}")
+            return algorithm
+        except Exception as e:
+            logger.error(f"Error detecting token algorithm: {e}")
+            return None
     
     def authenticate_user(self, username, password):
         """
@@ -123,11 +224,14 @@ class AuthService:
         logger.info(f"Token length: {len(token)}")
         logger.info(f"Token preview: {token[:30]}...")
         
-        # Log the secret key details
-        logger.info(f"Secret key type: {type(self.config.JWT_SECRET_KEY)}")
-        logger.info(f"Secret key length: {len(self.config.JWT_SECRET_KEY)}")
-        logger.info(f"Secret key preview: {self.config.JWT_SECRET_KEY[:20]}...")
-        logger.info(f"Algorithm: {self.config.JWT_ALGORITHM}")
+        # Detect token algorithm first
+        token_algorithm = self.detect_token_algorithm(token)
+        if not token_algorithm:
+            logger.error("Could not detect token algorithm")
+            return None
+        
+        logger.info(f"Token algorithm: {token_algorithm}")
+        logger.info(f"Configured algorithm: {self.config.JWT_ALGORITHM}")
         
         # Check if token is valid JWT format
         try:
@@ -141,11 +245,60 @@ class AuthService:
         
         try:
             logger.info("Attempting to decode JWT token...")
-            payload = jwt.decode(token, self.config.JWT_SECRET_KEY, algorithms=[self.config.JWT_ALGORITHM])
+            
+            if token_algorithm == 'RS256':
+                logger.info("Processing RS256 token...")
+                
+                # Try to get public key from config first
+                public_key = getattr(self.config, 'JWT_PUBLIC_KEY', None)
+                
+                # If no public key in config, try to fetch from Keycloak
+                if not public_key:
+                    logger.info("No public key in config, fetching from Keycloak...")
+                    public_key = self.get_keycloak_public_key()
+                
+                if not public_key:
+                    logger.error("No public key available for RS256 verification")
+                    return None
+                
+                logger.info(f"Public key length: {len(public_key)}")
+                logger.info(f"Public key preview: {public_key[:50]}...")
+                
+                payload = jwt.decode(
+                    token, 
+                    public_key, 
+                    algorithms=[token_algorithm],
+                    options={
+                        'verify_signature': True,
+                        'verify_exp': True,
+                        'verify_aud': False,  # Disable audience verification if not needed
+                        'verify_iss': False   # Disable issuer verification if not needed
+                    }
+                )
+                
+            elif token_algorithm == 'HS256':
+                logger.info("Processing HS256 token...")
+                
+                # Log the secret key details
+                logger.info(f"Secret key type: {type(self.config.JWT_SECRET_KEY)}")
+                logger.info(f"Secret key length: {len(self.config.JWT_SECRET_KEY)}")
+                logger.info(f"Secret key preview: {self.config.JWT_SECRET_KEY[:20]}...")
+                
+                payload = jwt.decode(
+                    token, 
+                    self.config.JWT_SECRET_KEY, 
+                    algorithms=[token_algorithm]
+                )
+                
+            else:
+                logger.error(f"Unsupported algorithm: {token_algorithm}")
+                return None
+            
             logger.info(f"Token decoded successfully! Payload keys: {list(payload.keys())}")
-            logger.info(f"Token username: {payload.get('username', 'N/A')}")
+            logger.info(f"Token username: {payload.get('preferred_username', payload.get('username', 'N/A'))}")
             logger.info(f"Token expiration: {payload.get('exp', 'N/A')}")
             return payload
+            
         except jwt.ExpiredSignatureError as e:
             logger.warning(f"Token JWT expiré: {e}")
             return None
