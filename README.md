@@ -28,96 +28,65 @@ Ce docker-compose principal orchestre tous les services de l'application Atexo e
    cp env.example .env
    ```
 
-2. Modifiez le fichier `.env` selon vos besoins :
-   - Ajustez les versions des images WrenAI
-   - Configurez les ports si nécessaire
-   - Définissez vos clés API pour les services externes
-
-3. Assurez-vous que les fichiers de configuration suivants existent :
-   - `./wrenai/config.yaml`
-   - `./wrenai/.env`
-   - `./reverse-proxy/.env`
-
+2. Modifiez le fichier `.env` selon vos besoins
+```
+KEYCLOAK_REALM=atexo
+KEYCLOAK_CLIENT_ID=atexo-wrenai
+KEYCLOAK_CLIENT_SECRET=Secret du client KEYCLOAK_CLIENT_ID
+KEYCLOAK_SERVER_URL=Url du serveur keycloak à utiliser
+MISTRAL_API_KEY=Mistral Api key
+LOCAL_AUTH_ENABLED=Si docker doit déployer un keycloak (environnement de développement)
+```
 ## Déploiement
 
-### Démarrage
+### Démarrage rapide
+
 ```bash
-docker-compose up -d
+docker compose up -d
+docker cp db.sqlite3 atexo_wren_bootstrap:/app/data/db.sqlite3
 ```
 
-## Ordre de démarrage
+### Configuration Keycloak (environnement de développement)
 
-Les services démarrent dans l'ordre suivant pour respecter les dépendances :
+> **Note :** Ces étapes simplifient l'accès à la version locale du chatbot. En production, configurez les variables d'environnement Keycloak et définissez `LOCAL_AUTH_ENABLED=false`.
 
-1. **Keycloak** - Service d'authentification
-2. **WrenAI Bootstrap** - Initialisation des données
-3. **Qdrant** - Base de données vectorielle
-4. **WrenAI Engine** - Moteur principal
-5. **Ibis Server** - Serveur de requêtes
-6. **WrenAI AI Service** - Service d'IA
-7. **WrenAI UI** - Interface utilisateur
-8. **Flask App** - API backend
-9. **HAProxy** - Reverse proxy
+#### 1. Accès à l'interface Keycloak
+- Ouvrir http://localhost:7080/ dans votre navigateur
+- S'authentifier avec : `admin` / `admin`
 
-## Dépannage
+#### 2. Création du realm
+- Cliquer sur **Manage realms** → **Create realm** ![1](assets/1.png)
+- Nommer le realm : `atexo` ![2](assets/2.png)
 
-### Problèmes courants
+#### 3. Configuration du client
+- Cliquer sur **Clients** → **Create client** ![3](assets/3.png)
+- Nommer le client : `atexo-wrenai` ![4](assets/4.png)
+- Cocher les options suivantes :
+  - ✅ Client authentification
+  - ✅ Standard flow  
+  - ✅ Direct access grants ![5](assets/5.png)
+- Dans **Valid redirect URIs** : `http://localhost/*`
+- Dans **Web origins** : `http://localhost`![6](assets/6.png)
+- Sauvegarder
 
-1. **Ports déjà utilisés** : Vérifiez qu'aucun autre service n'utilise les ports 3000, 5000, 7080, 8000, 8001, 8002, 8404
+#### 4. Création d'un utilisateur
+- Cliquer sur **Users** → **Create new user** ![7](assets/7.png)
+- Renseigner le nom d'utilisateur souhaité ![8](assets/8.png)
+- Cliquer sur **Credentials** → **Set password** ![9](assets/9.png)
+- Définir le mot de passe souhaité
+- Sauvegarder
 
-2. **Mémoire insuffisante** : Augmentez la mémoire allouée à Docker
+#### 5. Configuration de l'authentification
+- Cliquer sur **Authentication** 
+- Décocher toutes les cases bleues **Enabled** ![10](assets/10.png)
 
-3. **Problèmes de permissions** : Assurez-vous que les dossiers `./wrenai/data` et `./flask` ont les bonnes permissions
+#### 6. Récupération du secret client
+- Cliquer sur **Clients** → **atexo-wrenai** → **Credentials**
+- Copier le **Client Secret** ![11](assets/11.png)
+- Coller dans le fichier `.env` : `KEYCLOAK_CLIENT_SECRET=votre_secret`
 
-4. **Services qui ne démarrent pas** : Consultez les logs avec `docker-compose logs [service-name]`
-
-### Redémarrage d'un service spécifique
+#### 7. Redémarrage des services
 ```bash
-docker-compose restart [service-name]
-```
-
-### Reconstruction d'un service
-```bash
-docker-compose build [service-name]
-docker-compose up -d [service-name]
-```
-
-## Tests
-
-### Test de l'authentification
-
-Un script de test est fourni pour vérifier le fonctionnement de l'authentification :
-
-```bash
-# Test avec authentification activée
-python test_auth.py
-
-# Test avec authentification désactivée
-AUTH_ENABLED=false docker-compose up -d flask-app
-python test_auth.py
-```
-
-### Test manuel des endpoints
-
-```bash
-# Vérifier le statut d'authentification
-curl http://localhost:5000/auth/status
-
-# Test endpoint sans authentification
-curl http://localhost:5000/chatbot/test
-
-# Test endpoint avec authentification (requiert un token)
-curl -X POST http://localhost:5000/chatbot/query \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{"question": "Test question"}'
-```
-
-### Désactiver l'authentification
-
-Pour désactiver l'authentification Flask (mode développement/test) :
-
-```bash
-# Dans le fichier .env
-AUTH_ENABLED=false
+docker compose build flask-app haproxy
+docker compose up -d
 ```
