@@ -41,7 +41,8 @@ Ce docker compose principal orchestre tous les services de l'application Atexo e
 
 ### Modes de déploiement
 
-#### Mode 1 : Sans Keycloak local (par défaut)
+#### Mode 1 : Sans déploiement d'un Keycloak local (renseigner les infos d'un keycloak déployé dans le fichier .env est tout de même requis)
+
   ```bash
   # Utilise uniquement docker-compose.yml
   docker compose -f docker-compose.yml up -d
