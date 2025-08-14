@@ -66,6 +66,7 @@ Ce docker compose principal orchestre tous les services de l'application Atexo e
   # Utilise docker-compose.yml + docker-compose.override.yml
   docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
   docker cp db.sqlite3 atexo_wren_bootstrap:/app/data/db.sqlite3
+  docker exec -it atexo_keycloak bash -c "cd /opt/keycloak/bin && ./kcadm.sh config credentials --server http://localhost:7080 --realm master --user admin && ./kcadm.sh update realms/master -s sslRequired=NONE" # Entrer le mot de passe `admin` lorsque demandé
   ```
 
 ##### Configuration Keycloak (lorsque le Mode 2 est utilisé)

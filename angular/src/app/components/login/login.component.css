@@ -1,0 +1,87 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.login-card {
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.login-card mat-card-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.login-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: #667eea;
+  margin-bottom: 16px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.login-button {
+  height: 48px;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+.spinner {
+  margin-right: 8px;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f44336;
+  background-color: #ffebee;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ffcdd2;
+  font-size: 14px;
+}
+
+.error-message mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .login-container {
+    padding: 10px;
+  }
+  
+  .login-card {
+    max-width: 100%;
+  }
+  
+  .login-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+  }
+}

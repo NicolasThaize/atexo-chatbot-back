@@ -1,6 +1,25 @@
 version: '3.8'
 
 services:
+  # Angular Frontend
+  angular-app:
+    build:
+      context: ./angular
+      dockerfile: Dockerfile
+    container_name: atexo_angular_app
+    ports:
+      - "4200:4200"
+    environment:
+      NODE_ENV: production
+    networks:
+      - atexo_chatbot
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4200"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Flask Backend
   flask-app:
     build:

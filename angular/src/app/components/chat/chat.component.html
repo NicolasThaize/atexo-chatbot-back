@@ -1,0 +1,95 @@
+<div class="chat-container">
+  <!-- Header -->
+  <mat-toolbar color="primary" class="chat-header">
+    <span class="header-title">
+      <mat-icon>chat</mat-icon>
+      Atexo Chatbot
+    </span>
+    
+    <span class="spacer"></span>
+    
+    <div class="user-info" *ngIf="currentUser">
+      <mat-icon>account_circle</mat-icon>
+      <span>{{ currentUser.username }}</span>
+    </div>
+    
+    <button mat-icon-button (click)="startNewConversation()" matTooltip="Nouvelle conversation">
+      <mat-icon>add</mat-icon>
+    </button>
+    
+    <button mat-icon-button (click)="logout()" matTooltip="Déconnexion">
+      <mat-icon>logout</mat-icon>
+    </button>
+  </mat-toolbar>
+
+  <div class="chat-content">
+    <!-- Zone principale du chat -->
+    <div class="chat-main">
+      <!-- Zone des messages -->
+      <div class="messages-container" #messagesContainer>
+        <div *ngIf="messages.length === 0" class="welcome-message">
+          <mat-icon class="welcome-icon">chat_bubble_outline</mat-icon>
+          <h2>Bienvenue dans Atexo Chatbot</h2>
+          <p>Posez vos questions sur les stagiaires</p>
+          <p class="thread-info" *ngIf="chatService.getCurrentThreadId()">
+            Conversation en cours (Thread: {{ chatService.getCurrentThreadId() }})
+          </p>
+        </div>
+        
+        <div 
+          *ngFor="let message of messages" 
+          class="message"
+          [class.user-message]="message.isUser"
+          [class.bot-message]="!message.isUser">
+          
+          <div class="message-content">
+            <div class="message-header">
+              <mat-icon class="message-avatar">
+                {{ message.isUser ? 'person' : 'smart_toy' }}
+              </mat-icon>
+              <span class="message-sender">
+                {{ message.isUser ? (currentUser?.username || 'Vous') : 'Atexo Bot' }}
+              </span>
+              <span class="message-time">{{ formatTimestamp(message.timestamp) }}</span>
+            </div>
+            
+            <div class="message-text">
+              <markdown [data]="message.content"></markdown>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Indicateur de chargement -->
+        <div *ngIf="loading" class="loading-message">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Atexo Bot réfléchit...</span>
+        </div>
+      </div>
+
+      <!-- Zone de saisie -->
+      <div class="input-container">
+        <form [formGroup]="chatForm" (ngSubmit)="onSubmit()" class="input-form">
+          <mat-form-field appearance="outline" class="message-input">
+            <mat-label>Votre question...</mat-label>
+            <textarea 
+              matInput 
+              formControlName="message" 
+              placeholder="Posez votre question en langage naturel..."
+              rows="1"
+              (keydown.enter)="onKeyDown($event)">
+            </textarea>
+          </mat-form-field>
+          
+          <button 
+            mat-fab 
+            color="primary" 
+            type="submit" 
+            [disabled]="chatForm.invalid || loading"
+            class="send-button">
+            <mat-icon>send</mat-icon>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
