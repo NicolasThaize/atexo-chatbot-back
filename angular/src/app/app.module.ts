@@ -11,6 +11,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { LoginComponent } from './components/login/login.component';
 import { ChatComponent } from './components/chat/chat.component';
+import { AuthInterceptor } from './services/auth.interceptor';
 
 // Material Design Modules
 import { MatCardModule } from '@angular/material/card';
@@ -53,6 +54,9 @@ import { MatSortModule } from '@angular/material/sort';
         MatPaginatorModule,
         MatSortModule
     ], 
-    providers: [provideHttpClient(withInterceptorsFromDi())] 
+    providers: [
+        provideHttpClient(withInterceptorsFromDi()),
+        { provide: 'HTTP_INTERCEPTORS', useClass: AuthInterceptor, multi: true }
+    ] 
 })
 export class AppModule { }

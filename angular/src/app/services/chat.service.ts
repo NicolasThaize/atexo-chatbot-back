@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
 
@@ -53,10 +54,15 @@ export class ChatService {
       threadId: this.currentThreadId || undefined
     };
 
-    return this.http.post<ChatResponse>(
-      `${environment.apiUrl}/chatbot/query`,
-      request,
-      { headers: this.getHeaders() }
+    // Vérifier et rafraîchir le token si nécessaire avant l'envoi
+    return this.authService.refreshTokenIfNeeded().pipe(
+      switchMap(() => {
+        return this.http.post<ChatResponse>(
+          `${environment.apiUrl}/chatbot/query`,
+          request,
+          { headers: this.getHeaders() }
+        );
+      })
     );
   }
 

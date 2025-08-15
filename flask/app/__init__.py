@@ -17,8 +17,12 @@ def create_app(config_class=Config):
     with app.app_context():
     
         # Initialisation des extensions (seulement si l'authentification est activée)
-        if app.config.get('AUTH_ENABLED', True):
-            oidc.init_app(app)
+        if app.config.get('AUTH_ENABLED', True) and app.config.get('OIDC_ENABLED', True):
+            try:
+                oidc.init_app(app)
+            except Exception as e:
+                print(f"Warning: OIDC initialization failed: {e}")
+                print("Continuing without OIDC support")
 
         # Enregistrement des blueprints
         from app.routes import auth_routes, chatbot_routes

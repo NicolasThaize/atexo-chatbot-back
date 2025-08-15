@@ -152,6 +152,7 @@ class AuthService:
                 # Debug: Log the Keycloak response
                 logger.info(f"Keycloak response keys: {list(keycloak_data.keys())}")
                 logger.info(f"Keycloak access_token exists: {'access_token' in keycloak_data}")
+                logger.info(f"Keycloak refresh_token exists: {'refresh_token' in keycloak_data}")
                 
                 # Debug: Decode the token header to see the algorithm
                 import jwt
@@ -165,6 +166,8 @@ class AuthService:
                 return {
                     'success': True,
                     'token': keycloak_data['access_token'],
+                    'refresh_token': keycloak_data.get('refresh_token', ''),
+                    'expires_in': keycloak_data.get('expires_in', 3600),
                     'user': {
                         'username': username,
                         'email': username
@@ -185,6 +188,63 @@ class AuthService:
             }
         except Exception as e:
             logger.error(f"Erreur lors de l'authentification: {str(e)}")
+            return {
+                'success': False,
+                'error': 'Erreur interne du serveur'
+            }
+    
+    def refresh_access_token(self, refresh_token, client_id):
+        """
+        Rafraîchit le token d'accès en utilisant le refresh token via Keycloak
+        
+        Args:
+            refresh_token (str): Refresh token
+            client_id (str): ID du client
+            
+        Returns:
+            dict: Résultat du refresh avec les nouveaux tokens
+        """
+        try:
+            # Construction de l'URL de token Keycloak
+            token_url = f"{self.config.KEYCLOAK_SERVER_URL}/realms/{self.config.KEYCLOAK_REALM}/protocol/openid-connect/token"
+            
+            # Données pour le refresh token
+            token_data = {
+                'grant_type': 'refresh_token',
+                'client_id': client_id,
+                'client_secret': self.config.KEYCLOAK_CLIENT_SECRET,
+                'refresh_token': refresh_token
+            }
+            
+            # Appel à Keycloak
+            response = requests.post(token_url, data=token_data)
+            
+            if response.status_code == 200:
+                keycloak_data = response.json()
+                
+                logger.info(f"Refresh token successful for client: {client_id}")
+                
+                return {
+                    'success': True,
+                    'access_token': keycloak_data['access_token'],
+                    'refresh_token': keycloak_data.get('refresh_token', refresh_token),  # Garder l'ancien si pas de nouveau
+                    'expires_in': keycloak_data.get('expires_in', 3600)
+                }
+            else:
+                logger.warning(f"Échec du refresh token pour client {client_id}: {response.status_code}")
+                return {
+                    'success': False,
+                    'error': 'Refresh token invalide ou expiré'
+                }
+                
+        except requests.RequestException as e:
+            logger.error(f"Erreur de connexion à Keycloak lors du refresh: {str(e)}")
+            return {
+                'success': False,
+                'error': 'Erreur de connexion au serveur d\'authentification'
+            }
+        except Exception as e:
+            logger.error(f"Erreur lors du refresh token: {str(e)}")
             return {
                 'success': False,
                 'error': 'Erreur interne du serveur'

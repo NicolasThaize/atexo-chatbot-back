@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 /**
@@ -34,6 +34,8 @@ interface LoginApiResponseUser {
 
 interface LoginApiResponse {
   token: string;
+  refresh_token?: string;
+  expires_in?: number;
   user: LoginApiResponseUser;
 }
 
@@ -79,8 +81,11 @@ export class AuthService {
 
     return this.http.post<LoginApiResponse>(`${environment.apiUrl}/auth/login`, body)
       .pipe(map(response => {
-        // Stocker le token issu de la nouvelle API
+        // Stocker le token et refresh token issus de la nouvelle API
         localStorage.setItem('access_token', response.token);
+        if (response.refresh_token) {
+          localStorage.setItem('refresh_token', response.refresh_token);
+        }
 
         // Construire l'utilisateur depuis la réponse et/ou le token
         const decodedFromToken = this.safeDecodeRaw(response.token);
@@ -145,6 +150,10 @@ export class AuthService {
    */
   refreshToken(): Observable<AuthResponse> {
     const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) {
+      throw new Error('Aucun refresh token disponible');
+    }
+
     const body = {
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
@@ -155,7 +164,23 @@ export class AuthService {
       .pipe(map(response => {
         localStorage.setItem('access_token', response.access_token);
         localStorage.setItem('refresh_token', response.refresh_token);
+        
+        // Mettre à jour l'utilisateur si nécessaire
+        const currentUser = this.currentUserValue;
+        if (currentUser) {
+          const decodedFromToken = this.safeDecodeRaw(response.access_token);
+          const updatedUser: User = {
+            ...currentUser,
+            exp: typeof decodedFromToken.exp === 'number' ? decodedFromToken.exp : undefined
+          };
+          localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+          this.currentUserSubject.next(updatedUser);
+        }
+        
         return response;
+      }), catchError(error => {
+        this.handleRefreshError(error);
+        return throwError(() => error);
       }));
   }
   
@@ -171,5 +196,66 @@ export class AuthService {
       return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
     }).join(''));
     return JSON.parse(jsonPayload);
+  }
+
+  /**
+   * Vérifie si le token va expirer dans les prochaines minutes
+   * @param minutesBeforeExpiry Nombre de minutes avant expiration pour déclencher le refresh
+   */
+  isTokenExpiringSoon(minutesBeforeExpiry: number = 5): boolean {
+    const token = localStorage.getItem('access_token');
+    if (!token) return true;
+
+    try {
+      const decoded = this.safeDecodeRaw(token);
+      const exp = typeof decoded.exp === 'number' ? decoded.exp : undefined;
+      if (!exp) return false;
+      
+      const currentTime = Date.now() / 1000;
+      const timeUntilExpiry = exp - currentTime;
+      const minutesUntilExpiry = timeUntilExpiry / 60;
+      
+      return minutesUntilExpiry <= minutesBeforeExpiry;
+    } catch {
+      return true;
+    }
+  }
+
+  /**
+   * Rafraîchit automatiquement le token s'il va expirer bientôt
+   * @param minutesBeforeExpiry Nombre de minutes avant expiration pour déclencher le refresh
+   */
+  refreshTokenIfNeeded(minutesBeforeExpiry: number = 5): Observable<boolean> {
+    if (this.isTokenExpiringSoon(minutesBeforeExpiry)) {
+      return this.refreshToken().pipe(
+        map(() => true),
+        catchError(error => {
+          console.error('Erreur lors du refresh automatique du token:', error);
+          this.logout();
+          return of(false);
+        })
+      );
+    }
+    return of(true);
+  }
+
+  /**
+   * Gère les erreurs de refresh token et déconnecte l'utilisateur si nécessaire
+   */
+  private handleRefreshError(error: any): void {
+    console.error('Erreur lors du refresh token:', error);
+    
+    // Si le refresh token est invalide ou expiré, déconnecter l'utilisateur
+    if (error.status === 401 || error.status === 400) {
+      console.log('Refresh token invalide, déconnexion de l\'utilisateur');
+      this.logout();
+    }
+  }
+
+  /**
+   * Vérifie si un refresh token est disponible
+   */
+  hasRefreshToken(): boolean {
+    return !!localStorage.getItem('refresh_token');
   }
 }
