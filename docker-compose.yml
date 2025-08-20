@@ -64,7 +64,7 @@ services:
       dockerfile: Dockerfile
     container_name: atexo_haproxy
     ports:
-      - "3000:3000"  # WrenAI UI
+      #- "3000:3000"  # WrenAI UI
       - "8000:8000"  # WrenAI AI Service
       - "8001:8001"  # WrenAI Engine
       - "8002:8002"  # WrenAI Ibis Server
@@ -173,6 +173,7 @@ services:
       CONFIG_PATH: /app/config.yaml
       WREN_AI_SERVICE_PORT: 5555
       WREN_UI_PORT: 3000
+      SHOULD_FORCE_DEPLOY: 1
     volumes:
       - ./wrenai/config.yaml:/app/config.yaml:ro
       - ./wrenai/data:/app/data:ro
@@ -198,6 +199,8 @@ services:
     container_name: atexo_wren_ui
     restart: on-failure
     platform: ${PLATFORM}
+    ports:
+      - 3000:3000
     environment:
       DB_TYPE: sqlite
       SQLITE_FILE: /app/data/db.sqlite3

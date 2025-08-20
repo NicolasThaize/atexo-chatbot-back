@@ -1,170 +1,116 @@
-# Reverse Proxy with Comprehensive Keycloak Authentication
+# Reverse proxy avec authentification Keycloak complète
+Cette configuration de reverse proxy assure une protection complète pour tous les services du réseau Docker `atexo_chatbot` en utilisant HAProxy avec authentification Keycloak. Elle met en œuvre un **routage basé sur les ports** pour l'architecture multi-services WrenAI.
 
-This reverse proxy setup provides comprehensive protection for all services in the `atexo_chatbot` docker network using HAProxy with Keycloak authentication. It implements **port-based routing** for the multi-service WrenAI architecture.
-
-## Architecture Overview
-
-The reverse proxy uses **port-based routing** where each port maps to a specific WrenAI service:
-
-- **Port 3000** → WrenAI UI (Web Interface)
-- **Port 8000** → WrenAI AI Service (AI/ML endpoints)
-- **Port 8001** → WrenAI Engine (Core engine service)
-- **Port 8002** → WrenAI Ibis Server (Ibis server endpoints)
+## Aperçu de l'architecture
+Le reverse proxy utilise un **routage basé sur les ports**, où chaque port correspond à un service spécifique de WrenAI (les service à protéger) :
+- **Port 3000** → WrenAI UI (Interface Web)
+- **Port 8000** → WrenAI AI Service (points de terminaison IA/ML)
+- **Port 8001** → WrenAI Engine (service principal du moteur)
+- **Port 8002** → WrenAI Ibis Server (points de terminaison du serveur Ibis)
 
 ## Configuration
-
-### Environment Variables
-
-All configuration is done through environment variables. Copy `env.example` to `.env` and customize:
-
+### Variables d'environnement
+Toute la configuration se fait via des variables d'environnement. Copiez `env.example` vers `.env` et personnalisez-le :
 ```bash
 cp env.example .env
 ```
 
-#### Keycloak Configuration
-- `KEYCLOAK_URL`: Keycloak server URL (default: `http://keycloak:7080`)
-- `KEYCLOAK_REALM`: Keycloak realm name (default: `atexo`)
-- `KEYCLOAK_CLIENT_ID`: Keycloak client ID (default: `atexo-wrenai`)
-- `KEYCLOAK_CLIENT_SECRET`: Keycloak client secret (optional)
+#### Configuration Keycloak
+- `KEYCLOAK_URL` : URL du serveur Keycloak (par défaut : `http://keycloak:7080`)
+- `KEYCLOAK_REALM` : Nom du realm Keycloak (par défaut : `atexo`)
+- `KEYCLOAK_CLIENT_ID` : ID du client Keycloak (par défaut : `atexo-wrenai`)
+- `KEYCLOAK_CLIENT_SECRET` : Secret du client Keycloak (optionnel)
 
-#### HAProxy Configuration
-- `HAPROXY_STATS_USER`: Username for HAProxy stats page (default: `admin`)
-- `HAPROXY_STATS_PASSWORD`: Password for HAProxy stats page (default: `admin123`)
-- `HAPROXY_MAX_CONNECTIONS`: Maximum connections (default: `4096`)
+#### Configuration HAProxy
+- `HAPROXY_STATS_USER` : Nom d'utilisateur pour la page de statistiques HAProxy (par défaut : `admin`)
+- `HAPROXY_STATS_PASSWORD` : Mot de passe pour la page de statistiques HAProxy (par défaut : `admin123`)
+- `HAPROXY_MAX_CONNECTIONS` : Nombre maximum de connexions (par défaut : `4096`)
 
-#### JWT Validation Settings
-- `JWT_CACHE_DURATION`: Public key cache duration in seconds (default: `300`)
-- `JWT_VALIDATION_ENABLED`: Enable/disable JWT validation (default: `true`)
+#### Paramètres de validation JWT
+- `JWT_CACHE_DURATION` : Durée de cache de la clé publique en secondes (par défaut : `300`)
+- `JWT_VALIDATION_ENABLED` : Activer/désactiver la validation JWT (par défaut : `true`)
 
-#### Backend Services
-- `KEYCLOAK_SERVICE_HOST`: Keycloak service hostname (default: `keycloak`)
-- `KEYCLOAK_SERVICE_PORT`: Keycloak service port (default: `7080`)
+#### Services backend
+- `KEYCLOAK_SERVICE_HOST` : Nom d'hôte du service Keycloak (par défaut : `keycloak`)
+- `KEYCLOAK_SERVICE_PORT` : Port du service Keycloak (par défaut : `7080`)
 
-#### WrenAI Multi-Service Architecture
-- `WREN_AI_SERVICE_PORT`: WrenAI AI Service internal port (default: `8080`)
-- `WREN_ENGINE_PORT`: WrenAI Engine internal port (default: `8081`)
-- `IBIS_SERVER_PORT`: WrenAI Ibis Server internal port (default: `8082`)
+#### Architecture multi-services WrenAI
+- `WREN_AI_SERVICE_PORT` : Port interne du service WrenAI AI (par défaut : `8080`)
+- `WREN_ENGINE_PORT` : Port interne du moteur WrenAI (par défaut : `8081`)
+- `IBIS_SERVER_PORT` : Port interne du serveur Ibis WrenAI (par défaut : `8082`)
 
-#### Network Configuration
-- `PROXY_TRUSTED_ADDRESSES`: Trusted proxy IP ranges (default: `172.16.0.0/12,192.168.0.0/16,10.0.0.0/8`)
-- `PROXY_HEADERS_TYPE`: Proxy headers type (default: `xforwarded`)
+#### Configuration réseau
+- `PROXY_TRUSTED_ADDRESSES` : Plages d'adresses IP de confiance pour le proxy (par défaut : `172.16.0.0/12,192.168.0.0/16,10.0.0.0/8`)
+- `PROXY_HEADERS_TYPE` : Type d'en-têtes proxy (par défaut : `xforwarded`)
 
-#### Security Settings
-- `ALLOW_STATIC_RESOURCES`: Allow static resources without auth (default: `true`)
-- `ALLOW_AUTH_ENDPOINTS`: Allow auth endpoints without auth (default: `true`)
-- `STATIC_RESOURCE_PATHS`: Paths considered static resources (default: `/_next,/static`)
-- `AUTH_ENDPOINT_PATHS`: Paths considered auth endpoints (default: `/api/auth,/realms,/resources,/admin`)
+#### Paramètres de sécurité
+- `ALLOW_STATIC_RESOURCES` : Autoriser les ressources statiques sans authentification (par défaut : `true`)
+- `ALLOW_AUTH_ENDPOINTS` : Autoriser les points de terminaison d'authentification sans authentification (par défaut : `true`)
+- `STATIC_RESOURCE_PATHS` : Chemins considérés comme des ressources statiques (par défaut : `/_next,/static`)
+- `AUTH_ENDPOINT_PATHS` : Chemins considérés comme des points de terminaison d'authentification (par défaut : `/api/auth,/realms,/resources,/admin`)
 
-#### Logging
-- `HAPROXY_LOG_LEVEL`: HAProxy log level (default: `info`)
-- `JWT_LOG_LEVEL`: JWT validation log level (default: `info`)
+#### Journalisation
+- `HAPROXY_LOG_LEVEL` : Niveau de journalisation HAProxy (par défaut : `info`)
+- `JWT_LOG_LEVEL` : Niveau de journalisation de la validation JWT (par défaut : `info`)
 
-### Keycloak Setup
-
-1. Start the services:
-```bash
-docker-compose up -d
-```
-
-2. Access Keycloak admin console at `http://localhost:7080`
-   - Username: `admin`
-   - Password: `admin`
-
-3. Create a new realm called `atexo` (or match your `KEYCLOAK_REALM` setting)
-
-4. Create a new client:
-   - Client ID: `atexo-wrenai` (or match your `KEYCLOAK_CLIENT_ID` setting)
-   - Client Protocol: `openid-connect`
-   - Access Type: `public`
-   - Valid Redirect URIs: `http://localhost/*`
-   - Web Origins: `http://localhost`
-
-5. Create users in the realm for testing
-
-## Port-Based Routing
-
-### Service Ports and Routing
-
-| External Port | Service | Internal Service | Internal Port | Purpose |
+## Routage basé sur les ports
+### Ports des services et routage
+| Port externe | Service | Service interne | Port interne | Objectif |
 |---------------|---------|------------------|---------------|---------|
-| 3000 | WrenAI UI | `atexo_wren_ui` | 3000 | Web interface |
-| 8000 | WrenAI AI Service | `atexo_wren_ai_service` | 8080 | AI/ML endpoints |
-| 8001 | WrenAI Engine | `atexo_wren_engine` | 8081 | Core engine |
-| 8002 | WrenAI Ibis Server | `atexo_ibis_server` | 8082 | Ibis server |
-| 8404 | HAProxy Stats | - | - | Monitoring |
+| 3000 | WrenAI UI | `atexo_wren_ui` | 3000 | Interface Web |
+| 8000 | WrenAI AI Service | `atexo_wren_ai_service` | 8080 | Points de terminaison IA/ML |
+| 8001 | WrenAI Engine | `atexo_wren_engine` | 8081 | Moteur principal |
+| 8002 | WrenAI Ibis Server | `atexo_ibis_server` | 8082 | Serveur Ibis |
+| 8404 | Statistiques HAProxy | - | - | Surveillance |
 
-### Routing Examples
+### Exemples de routage
+- **UI Web** : `http://localhost:3000` → Achemine vers le service WrenAI UI
+- **API IA** : `http://localhost:8000/api/chat` → Achemine vers le service WrenAI AI
+- **API Moteur** : `http://localhost:8001/v1/query` → Achemine vers le moteur WrenAI
+- **API Ibis** : `http://localhost:8002/sql` → Achemine vers le serveur Ibis WrenAI
 
-- **Web UI**: `http://localhost:3000` → Routes to WrenAI UI service
-- **AI API**: `http://localhost:8000/api/chat` → Routes to WrenAI AI Service
-- **Engine API**: `http://localhost:8001/v1/query` → Routes to WrenAI Engine
-- **Ibis API**: `http://localhost:8002/sql` → Routes to WrenAI Ibis Server
+## Modèle de sécurité
+### Routes protégées (nécessitent un jeton JWT Bearer valide)
+- **Toutes les routes sur tous les ports**, sauf celles explicitement listées comme non protégées ci-dessous
+- **Approche par liste blanche** : Tout est protégé par défaut
 
-## Security Model
+### Routes non protégées (pas d'authentification requise)
+- **Points de terminaison Keycloak** : `/realms/*`, `/resources/*`, `/admin/*`
+- **Vérifications de santé** : `/health`
+- **Points de terminaison d'authentification** : `/auth/*`
+- **Ressources statiques** : `/_next/*`, `/static/*` (configurable via `STATIC_RESOURCE_PATHS`)
+- **Chemins des points de terminaison d'authentification** : `/api/auth/*` (configurable via `AUTH_ENDPOINT_PATHS`)
 
-### Protected Routes (Require Valid JWT Bearer Token)
-- **All routes on all ports** except those explicitly listed as unprotected below
-- **Whitelist approach**: Everything is protected by default
+### Validation JWT
+Le script Lua valide les jetons JWT pour toutes les routes protégées. Les jetons invalides ou manquants renvoient **401 Non autorisé**.
 
-### Unprotected Routes (No Authentication Required)
-- **Keycloak endpoints**: `/realms/*`, `/resources/*`, `/admin/*`
-- **Health checks**: `/health`
-- **Auth endpoints**: `/auth/*`
-- **Static resources**: `/_next/*`, `/static/*` (configurable via `STATIC_RESOURCE_PATHS`)
-- **Auth endpoint paths**: `/api/auth/*` (configurable via `AUTH_ENDPOINT_PATHS`)
-
-### JWT Validation
-
-The Lua script validates JWT tokens for all protected routes. Invalid or missing tokens return **401 Unauthorized**.
-
-## Usage
-
-1. Copy and customize the environment file:
+## Utilisation
+1. Copiez et personnalisez le fichier d'environnement :
 ```bash
 cp env.example .env
-# Edit .env with your settings
+# Modifiez .env avec vos paramètres
 ```
-
-2. Start the services:
+2. Démarrez les services :
 ```bash
-docker-compose up -d
+docker build --tag 'atexo-haproxy' .
+docker run --detach 'atexo-haproxy'
 ```
-
-3. Access services through their respective ports:
-   - **Web UI**: `http://localhost:3000`
-   - **AI Service**: `http://localhost:8000`
-   - **Engine**: `http://localhost:8001`
-   - **Ibis Server**: `http://localhost:8002`
-   - **HAProxy Stats**: `http://localhost:8404`
-
-4. Unauthenticated requests to protected routes will return **401 Unauthorized**
-
-5. After obtaining a valid JWT token from Keycloak, include it in the Authorization header:
+3. Accédez aux services via leurs ports respectifs :
+   - **UI Web** : `http://localhost:3000`
+   - **Service IA** : `http://localhost:8000`
+   - **Moteur** : `http://localhost:8001`
+   - **Serveur Ibis** : `http://localhost:8002`
+   - **Statistiques HAProxy** : `http://localhost:8404`
+4. Les requêtes non authentifiées vers les routes protégées renverront **401 Non autorisé**
+5. Après avoir obtenu un jeton JWT valide de Keycloak, incluez-le dans l'en-tête Authorization :
    ```
-   Authorization: Bearer <your-jwt-token>
+   Authorization: Bearer <votre-jeton-jwt>
    ```
 
-## Security Notes
-
-- **Whitelist Security Model**: All routes are protected by default except explicitly unprotected ones
-- **Port-Based Isolation**: Each service is isolated on its own port with dedicated frontend/backend
-- **JWT Validation**: The reverse proxy validates JWT tokens before forwarding requests to any backend
-- **Static Resources**: Static resources and auth endpoints are excluded from authentication to allow proper functioning
-- **Proxy Headers**: Properly configured for Keycloak as per the [Keycloak documentation](https://www.keycloak.org/server/reverseproxy)
-- **Trusted Proxies**: Trusted proxy addresses are configured for security
-- **Development Mode**: JWT validation can be disabled for development/testing via `JWT_VALIDATION_ENABLED=false`
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Service not accessible**: Ensure the target WrenAI service is running and healthy
-2. **401 Unauthorized**: Verify JWT token is valid and properly formatted
-3. **Port conflicts**: Check that the external ports (3000, 8000, 8001, 8002) are not in use
-4. **Keycloak connection**: Verify Keycloak is running and accessible at the configured URL
-
-### Monitoring
-
-- **HAProxy Stats**: Access `http://localhost:8404` for real-time monitoring
-- **Logs**: Check container logs for detailed error information
-- **Health Checks**: Each backend includes health checks for service availability
+## Notes
+- **Modèle de sécurité par liste blanche** : Toutes les routes sont protégées par défaut, sauf celles explicitement non protégées
+- **Isolation par port** : Chaque service est isolé sur son propre port avec un frontend/backend dédié
+- **Validation JWT** : Le reverse proxy valide les jetons JWT avant de transmettre les requêtes à un backend
+- **En-têtes proxy** : Correctement configurés pour Keycloak selon la [documentation Keycloak](https://www.keycloak.org/server/reverseproxy)
+- **Proxys de confiance** : Les adresses de proxy de confiance sont configurées pour la sécurité
+- **Mode développement** : La validation JWT peut être désactivée pour le développement/test via `JWT_VALIDATION_ENABLED=false`
