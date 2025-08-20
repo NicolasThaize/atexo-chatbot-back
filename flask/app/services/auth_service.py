@@ -3,15 +3,13 @@ import requests
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import request, jsonify, current_app, session, g
-from flask_oidc import OpenIDConnect
 from config import Config
 import logging
-import json
 
 logger = logging.getLogger(__name__)
 
 class AuthService:
-    """Service de gestion de l'authentification via Keycloak avec Flask-OIDC"""
+    """Service de gestion de l'authentification via Keycloak"""
     
     def __init__(self):
         self.config = Config()
@@ -376,49 +374,6 @@ class AuthService:
             import traceback
             logger.error(f"Full traceback: {traceback.format_exc()}")
             return None
-    
-    def get_user_info_from_oidc(self):
-        """
-        Récupère les informations utilisateur depuis Flask-OIDC
-        
-        Returns:
-            dict: Informations utilisateur ou None si non connecté
-        """
-        try:
-            from app import oidc
-            
-            if oidc.user_loggedin:
-                # Utiliser les informations de session OIDC
-                if 'oidc_auth_profile' in session:
-                    return session['oidc_auth_profile']
-                # Ou utiliser l'objet utilisateur sur g
-                elif hasattr(g, 'oidc_user') and g.oidc_user.logged_in:
-                    return g.oidc_user.profile
-            return None
-        except Exception as e:
-            logger.error(f"Erreur lors de la récupération des infos utilisateur OIDC: {str(e)}")
-            return None
-    
-    def create_oidc_token(self, user_info):
-        """
-        Crée un token JWT à partir des informations OIDC
-        
-        Args:
-            user_info (dict): Informations utilisateur depuis OIDC
-            
-        Returns:
-            str: Token JWT encodé
-        """
-        payload = {
-            'username': user_info.get('email', user_info.get('sub', '')),
-            'email': user_info.get('email', ''),
-            'sub': user_info.get('sub', ''),
-            'exp': datetime.utcnow() + timedelta(hours=self.config.JWT_EXPIRATION_HOURS),
-            'iat': datetime.utcnow(),
-            'iss': 'flask-chatbot'
-        }
-        
-        return jwt.encode(payload, self.config.JWT_SECRET_KEY, algorithm=self.config.JWT_ALGORITHM)
 
 def require_jwt(f):
     """

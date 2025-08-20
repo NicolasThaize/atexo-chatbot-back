@@ -10,19 +10,11 @@ class Config:
     """Configuration de l'application Flask"""
     logger.info("Loading configuration...")
     # Configuration Flask
-    #SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-change-in-production')
     DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     
     # Configuration WrenAI OSS
     WRENAI_BASE_URL = os.getenv('WRENAI_BASE_URL', 'http://localhost:8080')
     WRENAI_API_KEY = os.getenv('WRENAI_API_KEY', 'your-wrenai-api-key')
-    
-    # Configuration Keycloak
-    OIDC_CLIENT_SECRETS = os.getenv('OIDC_CLIENT_SECRETS', 'client_secrets.json')
-    OIDC_SCOPES = os.getenv('OIDC_SCOPES', 'openid email profile')
-    OIDC_CLOCK_SKEW = int(os.getenv('OIDC_CLOCK_SKEW', '60'))
-    OIDC_USER_INFO_ENABLED = os.getenv('OIDC_USER_INFO_ENABLED', 'True').lower() == 'true'
-    OIDC_ENABLED = os.getenv('OIDC_ENABLED', 'True').lower() == 'true'
     
     # Configuration Keycloak (détails)
     KEYCLOAK_REALM = os.getenv('KEYCLOAK_REALM', 'your-realm')

@@ -6,8 +6,5 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-# Make entrypoint script executable
-RUN chmod +x entrypoint.sh
-
 EXPOSE 5000
-CMD ["./entrypoint.sh"]
+CMD ["python", "main.py"]

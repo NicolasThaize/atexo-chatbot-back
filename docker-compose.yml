@@ -33,11 +33,6 @@ services:
       FLASK_DEBUG: true
       WRENAI_BASE_URL: http://atexo_wren_ui:3000/api/v1
       WRENAI_API_KEY: your-wrenai-api-key
-      OIDC_CLIENT_SECRETS: client_secrets.json
-      OIDC_SCOPES: openid email profile
-      OIDC_CLOCK_SKEW: 60
-      OIDC_USER_INFO_ENABLED: True
-      OIDC_ENABLED: True
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
