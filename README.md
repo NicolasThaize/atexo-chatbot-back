@@ -59,7 +59,7 @@ Ce docker compose principal orchestre tous les services de l'application Atexo e
     - Tous les services WrenAI
 
   - **`docker-compose.override.yml`** : Ajoute Keycloak local et ses dépendances
-    - Service Keycloak complet
+    - Service Keycloak complet, les variables d'environnement dans `env.example` sont déjà configurées pour le keycloak local, seule la variable de Mistral est à modifier.
     - Dépendances Flask et HAProxy vers Keycloak local
 
 
@@ -67,6 +67,7 @@ Ce docker compose principal orchestre tous les services de l'application Atexo e
   # Utilise docker-compose.yml + docker-compose.override.yml
   docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
   docker cp db.sqlite3 atexo_wren_bootstrap:/app/data/db.sqlite3
+  docker compose restart wren-engine ibis-server wren-ai-service wren-ui qdrant
   docker exec -it atexo_keycloak bash -c "cd /opt/keycloak/bin && ./kcadm.sh config credentials --server http://localhost:7080 --realm master --user admin && ./kcadm.sh update realms/master -s sslRequired=NONE" # Entrer le mot de passe `admin` lorsque demandé
   ```
 
@@ -78,21 +79,6 @@ Ce docker compose principal orchestre tous les services de l'application Atexo e
   - Ouvrir http://localhost:7080/ dans votre navigateur
   - S'authentifier avec : `admin` / `admin`
 
-###### 2. Création du realm
-  - Cliquer sur **Manage realms** → **Create realm** ![1](assets/1.png)
-  - Nommer le realm : `atexo` ![2](assets/2.png)
-
-###### 3. Configuration du client
-- Cliquer sur **Clients** → **Create client** ![3](assets/3.png)
-- Nommer le client : `atexo-wrenai` ![4](assets/4.png)
-- Cocher les options suivantes :
-  - ✅ Client authentification
-  - ✅ Standard flow  
-  - ✅ Direct access grants ![5](assets/5.png)
-- Dans **Valid redirect URIs** : `http://localhost/*`
-- Dans **Web origins** : `http://localhost`![6](assets/6.png)
-- Sauvegarder
-
 ###### 4. Création d'un utilisateur
   - Cliquer sur **Users** → **Create new user** ![7](assets/7.png)
   - Renseigner le nom d'utilisateur souhaité ![8](assets/8.png)
@@ -100,17 +86,4 @@ Ce docker compose principal orchestre tous les services de l'application Atexo e
   - Définir le mot de passe souhaité
   - Sauvegarder
 
-###### 5. Configuration de l'authentification
-  - Cliquer sur **Authentication** 
-  - Décocher toutes les cases bleues **Enabled** ![10](assets/10.png)
-
-###### 6. Récupération du secret client
-  - Cliquer sur **Clients** → **atexo-wrenai** → **Credentials**
-  - Copier le **Client Secret** ![11](assets/11.png)
-  - Coller dans le fichier `.env` : `KEYCLOAK_CLIENT_SECRET=votre_secret`
-
-###### 7. Redémarrage des services
-  ```bash
-  docker compose build flask-app haproxy
-  docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
-  ```
+L'interface web du chatbot est accessible sur http://localhost:4200/, vous pouvez vous y connecter avec un utilisateur précédement créé.
