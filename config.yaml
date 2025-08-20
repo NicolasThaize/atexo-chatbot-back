@@ -5,10 +5,10 @@ models:
   - alias: default
     api_base: https://api.mistral.ai/v1 # Mistral API base URL
     api_key_name: MISTRAL_API_KEY # Environment variable for Mistral API key
-    model: mistral/codestral-2501 # Mistral model to use
+    model: mistral/mistral-large-2411 # Mistral model to use
     context_window_size: 1000000
     kwargs:
-      max_tokens: 4096
+      max_tokens: 128000
       n: 1
       seed: 0
       temperature: 0
