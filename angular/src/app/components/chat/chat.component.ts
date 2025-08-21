@@ -79,6 +79,8 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         // Construire la réponse du chatbot selon le type de réponse
         let botResponse = '';
         
+        console.log('Response reçue:', response);
+        
         if (response.explanation) {
           // Priorité à l'explication si elle est présente
           botResponse = this.cleanMarkdownContent(response.explanation);
@@ -97,7 +99,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
             botResponse += `## Requête SQL générée\n\`\`\`sql\n${response.sql}\n\`\`\`\n\n`;
           }
           if (response.summary) {
-            botResponse += `## Résultat\n${response.summary}`;
+            botResponse += `## Résultat\n${this.cleanMarkdownContent(response.summary)}`;
           }
         }
         
@@ -158,13 +160,19 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     if (!content) return '';
     
     return content
-      // Remplacer les \n par de vrais retours à la ligne
-      .replace(/\\n/g, '\n')
+      // Remplacer les \\n (double backslash) par des balises <br> HTML
+      .replace(/\\\\n/g, '<br>')
+      // Remplacer les \n (simple backslash) par des balises <br> HTML
+      .replace(/\\n/g, '<br>')
+      // Remplacer les \\t par des espaces
+      .replace(/\\\\t/g, '  ')
       // Remplacer les \t par des espaces
       .replace(/\\t/g, '  ')
-      // Remplacer les \r par des retours à la ligne
-      .replace(/\\r/g, '\n')
-      // Remplacer les \\ par un seul \
+      // Remplacer les \\r par des balises <br> HTML
+      .replace(/\\\\r/g, '<br>')
+      // Remplacer les \r par des balises <br> HTML
+      .replace(/\\r/g, '<br>')
+      // Remplacer les \\\\ par un seul \
       .replace(/\\\\/g, '\\')
       // Nettoyer les espaces en début et fin
       .trim();
