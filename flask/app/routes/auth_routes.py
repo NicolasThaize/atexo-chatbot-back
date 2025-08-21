@@ -19,10 +19,12 @@ def login():
     
     Réponse:
     {
-        "token": "jwt_token_here",
+        "expires_in": 300,
+        "refresh_token": "refresh_token_here",
+        "token": "token_here",
         "user": {
-            "username": "user@example.com",
-            "email": "user@example.com"
+            "email": "user@example.com",
+            "username": "user@example.com"
         }
     }
     """
@@ -115,15 +117,15 @@ def refresh_token():
     Payload d'entrée:
     {
         "grant_type": "refresh_token",
-        "refresh_token": "refresh_token_here",
+        "refresh_token": "refr  esh_token_here",
         "client_id": "atexo-wrenai"
     }
     
     Réponse:
     {
-        "access_token": "new_jwt_token_here",
-        "refresh_token": "new_refresh_token_here",
-        "expires_in": 3600,
+        "access_token": "access_token_here",
+        "expires_in": 300,
+        "refresh_token": "refresh_token_here",
         "token_type": "Bearer"
     }
     """
