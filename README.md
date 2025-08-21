@@ -78,6 +78,7 @@ Ce docker compose principal orchestre tous les services de l'application Atexo e
 ###### 1. Accès à l'interface Keycloak
   - Ouvrir http://localhost:7080/ dans votre navigateur
   - S'authentifier avec : `admin` / `admin`
+  - Sélectionner le realm : `atexo`
 
 ###### 4. Création d'un utilisateur
   - Cliquer sur **Users** → **Create new user** ![7](assets/7.png)
