@@ -44,6 +44,8 @@ Créez un fichier `.env` dans le répertoire `flask` `cp env.example .env` et re
 ```bash
 FLASK_DEBUG=False #
 
+MISTRAL_PREPROMPT= # Préprompt personnalisable pour indiquer un comportement à respecter par le chatbot.
+
 # Configuration WrenAI OSS
 WRENAI_BASE_URL=http://localhost:8080
 WRENAI_API_KEY=votre-clé-api-wrenai

@@ -35,7 +35,7 @@ Ce docker compose principal orchestre tous les services de l'application Atexo e
   KEYCLOAK_CLIENT_SECRET=Secret du client KEYCLOAK_CLIENT_ID
   KEYCLOAK_SERVER_URL=Url du serveur keycloak à utiliser
   MISTRAL_API_KEY=Mistral Api key
-  LOCAL_AUTH_ENABLED=Si docker doit déployer un keycloak (environnement de développement)
+  MISTRAL_PREPROMPT=Préprompt personnalisable pour indiquer un comportement à respecter par le chatbot.
   ```
 ## Déploiement
 

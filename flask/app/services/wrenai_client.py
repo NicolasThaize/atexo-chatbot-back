@@ -11,6 +11,7 @@ class WrenAIClient:
         self.config = Config()
         self.base_url = self.config.WRENAI_BASE_URL
         self.api_key = self.config.WRENAI_API_KEY
+        self.mistral_preprompt = self.config.MISTRAL_PREPROMPT
         logger.info("WrenAIClient initialized")
         logger.info(f"Base URL: {self.base_url}")
         logger.info(f"API Key: {self.api_key}")
@@ -35,7 +36,7 @@ class WrenAIClient:
             }
             
             payload = {
-                'question': question,
+                'question': self.mistral_preprompt + question,
                 'language': 'fr'  # Forcer la langue en français
             }
             

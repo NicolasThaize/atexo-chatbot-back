@@ -9,6 +9,9 @@ load_dotenv()
 class Config:
     """Configuration de l'application Flask"""
     logger.info("Loading configuration...")
+
+    # Configuration Mistral Indications
+    MISTRAL_PREPROMPT = os.getenv('MISTRAL_PREPROMPT', """""")
     # Configuration Flask
     DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     

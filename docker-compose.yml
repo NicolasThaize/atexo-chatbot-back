@@ -31,6 +31,7 @@ services:
     environment:
       FLASK_ENV: development
       FLASK_DEBUG: true
+      MISTRAL_PREPROMPT: ${MISTRAL_PREPROMPT}
       WRENAI_BASE_URL: http://atexo_wren_ui:3000/api/v1
       WRENAI_API_KEY: your-wrenai-api-key
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
