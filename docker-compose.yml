@@ -60,7 +60,7 @@ services:
       dockerfile: Dockerfile
     container_name: atexo_haproxy
     ports:
-      #- "3000:3000"  # WrenAI UI
+      - "3000:3000"  # WrenAI UI
       - "8000:8000"  # WrenAI AI Service
       - "8001:8001"  # WrenAI Engine
       - "8002:8002"  # WrenAI Ibis Server
@@ -195,8 +195,8 @@ services:
     container_name: atexo_wren_ui
     restart: on-failure
     platform: ${PLATFORM}
-    ports:
-      - 3000:3000
+    #ports:
+    # - 3000:3000
     environment:
       DB_TYPE: sqlite
       SQLITE_FILE: /app/data/db.sqlite3
@@ -227,6 +227,37 @@ services:
     depends_on:
       - wren-ai-service
       - wren-engine
+
+  # Bootstrap service to configure data source from inside the Docker network
+  bootstrap-config:
+    image: alpine:3.20
+    container_name: atexo_bootstrap_config
+    restart: "no"
+    networks:
+      - atexo_chatbot
+    depends_on:
+      - wren-ui
+    env_file:
+      - .env
+    environment:
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_NAME: ${DB_NAME:-atexo_int_remu_DB}
+      DB_SSL: ${DB_SSL:-false}
+      COOKIE: ${COOKIE:-}
+      DEBUG: ${DEBUG:-1}
+      URL: http://wren-ui:3000/api/graphql
+    volumes:
+      - ./scripts:/scripts:ro
+    command: >
+      sh -lc "set -e;
+      apk add --no-cache bash curl jq >/dev/null;
+      echo 'Waiting for wren-ui to be ready...';
+      until curl -sSf http://wren-ui:3000 >/dev/null; do sleep 2; done;
+      echo 'wren-ui is up. Running data source update...';
+      /scripts/update_data_source.sh"
 
 volumes:
   wrenai_data:

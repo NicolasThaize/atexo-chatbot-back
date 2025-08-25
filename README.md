@@ -14,6 +14,7 @@ Ce docker compose principal orchestre tous les services de l'application Atexo e
     - Wren UI (port 3000)
     - Ibis Server (port 8002)
     - Qdrant (base de données vectorielle)
+  - ** Bootstrap Config ** - Service permettant la connexion entre l'API et la base de donnée à intérroger via le chatbot.
 
 ## Prérequis
 
@@ -36,6 +37,12 @@ Ce docker compose principal orchestre tous les services de l'application Atexo e
   KEYCLOAK_SERVER_URL=Url du serveur keycloak à utiliser
   MISTRAL_API_KEY=Mistral Api key
   MISTRAL_PREPROMPT=Préprompt personnalisable pour indiquer un comportement à respecter par le chatbot.
+  DB_HOST=Hôte de la DB que le chatbot va intérroger (si sur le même network docker, utiliser host.docker.internal au lieu de localhost)
+  DB_PORT=Port de la DB que le chatbot va intérroger
+  DB_USER=Nom d'utilisateur de la DB que le chatbot va intérroger
+  DB_PASSWORD=Mot de passe de la DB que le chatbot va intérroger
+  DB_NAME=Nom de la DB que le chatbot va intérroger
+  DB_SSL=false/true
   ```
 ## Déploiement
 
@@ -66,8 +73,8 @@ Ce docker compose principal orchestre tous les services de l'application Atexo e
   ```bash
   # Utilise docker-compose.yml + docker-compose.override.yml
   docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
-  docker cp db.sqlite3 atexo_wren_bootstrap:/app/data/db.sqlite3
-  docker compose restart wren-engine ibis-server wren-ai-service wren-ui qdrant
+  docker cp db.sqlite3 atexo_wren_bootstrap:/app/data/db.sqlite3 && docker compose restart wren-engine ibis-server wren-ai-service wren-ui qdrant
+  docker compose up bootstrap-config -d
   docker exec -it atexo_keycloak bash -c "cd /opt/keycloak/bin && ./kcadm.sh config credentials --server http://localhost:7080 --realm master --user admin && ./kcadm.sh update realms/master -s sslRequired=NONE" # Entrer le mot de passe `admin` lorsque demandé
   ```
 
