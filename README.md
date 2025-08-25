@@ -1,4 +1,4 @@
-# Atexo Backend - Docker Compose Principal
+# Atexo Chatbot v0.2 - Docker Compose Principal
 
 Ce docker compose principal orchestre tous les services de l'application Atexo en un seul déploiement.
 
